@@ -1,4 +1,6 @@
 
+from random import randint
+
 import numpy as np
 import pandas as pd
 
@@ -42,16 +44,18 @@ app.layout = html.Div(
                        options=[dict(label='6 Months', value=6),
                                 dict(label='1 Year', value=12),
                                 dict(label='2 Years', value=24)],
-                       value=24, labelStyle={'display': 'inline-block'}),
+                       value=12, labelStyle={'display': 'inline-block'}),
 
         html.H2("Sample Size"),
         dcc.Input(id="input-sample-size", placeholder='Enter a %', type='number', value=10),
 
         html.H2("K-means Clustering"),
-        dcc.Slider(min=2, max=8, step=1, value=2, id="k-slider"),
+        dcc.Slider(min=2, max=12, step=1, value=2, id="k-slider"),
         html.Div(id="k-cluster-output-text"),
 
-        dcc.Graph(id="pca-scatter")
+        dcc.Graph(id="pca-scatter"),
+
+        dcc.Graph(id="groups-line-plot")
     ]
 )
 
@@ -88,9 +92,9 @@ def get_pca_labels(filepath="water_cons_data.csv", sample_size=10, time_range=24
     )
     X_pca = pd.DataFrame(X_t, columns=["PCA1", "PCA2"])
     model = get_model(filepath=filepath, sample_size=sample_size, time_range=time_range, k=k)
-    X_pca["labels"] = model.named_steps["kmeans"].labels_.astype(str)
+    X_pca["label"] = model.named_steps["kmeans"].labels_.astype(str)
 
-    X_pca.sort_values("labels", inplace=True)
+    X_pca.sort_values("label", inplace=True)
 
     return X_pca
 
@@ -119,10 +123,40 @@ def serve_k_selected(k=2):
 def serve_scatter(filepath="water_cons_data.csv", sample_size=10, time_range=24, k=2):
     fig = px.scatter(
         data_frame=get_pca_labels(filepath=filepath, sample_size=sample_size, time_range=time_range, k=k),
-        x="PCA1", y="PCA2", color="labels",
+        x="PCA1", y="PCA2", color="label",
         title="PCA Representation of Clusters"
     )
     fig.update_layout(xaxis_title="PCA1", yaxis_title="PCA2")
+
+    return fig
+
+
+# ----------------------------------------------------------------------------------------------------------------------
+
+@app.callback(
+    Output("groups-line-plot", "figure"),
+    Input("input-file-location", "value"),
+    Input("input-radio-item", "value"),
+    Input("input-sample-size", "value"),
+    Input("k-slider", "value")
+)
+def serve_line_plot(filepath="water_cons_data.csv", sample_size=10, time_range=24, k=2):
+    df = get_frame(filepath=filepath, sample_size=sample_size, time_range=time_range)
+    model = get_model(filepath=filepath, sample_size=sample_size, time_range=time_range, k=k)
+    df["label"] = model.named_steps["kmeans"].labels_.astype(str)
+    months = np.array(df.columns)
+
+    fig = go.Figure()
+    for label in df["label"].unique():
+        cons = df[df["label"] == label].iloc[randint(0, 10), :].transpose()
+
+        fig.add_trace(go.Scatter(
+            x=months, y=np.array(cons), name=label, mode='lines'))
+
+    fig.update_layout(
+        title="Consumption Across Multiple Groups",
+        xaxis_title="Month", yaxis_title="Consumption"
+    )
 
     return fig
 
