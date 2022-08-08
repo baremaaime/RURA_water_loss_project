@@ -168,3 +168,118 @@ if __name__=="__main__":
 # ----------------------------------------------------------------------------------------------------------------------
 
 
+
+
+
+
+
+
+
+
+app.layout = html.Div([
+    dbc.Row(children=[
+                dbc.Col(id="card_col",width = 6),
+                dbc.Col(id="form", width=6, children=[
+                    html.Div([
+                        dbc.FormGroup(children=[
+                            dbc.Label("Question 1"),
+                            dbc.Col(
+                                dcc.Input(type="text", id="q1", placeholder="Enter your info"),
+                                width=6
+                            )
+                        ],row=True)
+                    ]),
+                    html.Br(),
+                    html.Div(children=[
+                        dbc.FormGroup(children=[
+                            dbc.Label("Question 2?"),
+                            dbc.Col(
+                                dbc.Input(type="text",id="q2",placeholder="Enter your info"),
+                                width=6
+                            )
+                        ],row=True)
+                    ]),
+                    html.Br(),
+                    html.Div([
+                        dbc.FormGroup(children=[
+                            dbc.Label("Yes/No?"),
+                            dbc.Col(
+                                dbc.RadioItems(id="q3",options=[{"label": "Yes", "value": 1},
+                                                                {"label": "No", "value": 2}
+                                                               ]
+                                              ),width=6
+                            )
+                        ],row=True)
+
+                    ]),
+                    html.Br(),
+                    html.Div([
+                        html.Button(id='submit-button',
+                            n_clicks=0,
+                            children='Submit Query',
+                            style={'fontSize':24})
+
+                    ])
+
+                ]) #End of second column
+                ]), #End of row,
+    dbc.Row(
+        html.Div([
+            dcc.Graph(id='graph1')
+        ])
+    
+    )
+    
+
+])
+
+
+@app.callback(
+    Output('card_col','children'),
+    Input('submit-button','n_clicks'),
+    State('q1','value'),
+    State('q2','value'),
+    State('q3','value'))
+def update_cards(n_clicks,input1,input2,input3):
+    
+    card1 = dbc.Card([
+        dbc.CardBody([
+            html.H4(f"{input1}", className="card-title"),
+            html.P(f"{input1} was submitted.")
+        ],style={'display': 'inline-block',
+           'width': '33.3%',
+           'text-align': 'center',
+           'background-color': 'rgba(37, 150, 190)',
+           'color':'white',
+           'border': "2px solid white"})
+    ])
+        
+    card2 = dbc.Card([
+        dbc.CardBody([
+            html.H4(f"{input2}", className="card-title"),
+            html.P(f"{input2} was submitted.")
+        ],style={'display': 'inline-block',
+           'width': '33.3%',
+           'text-align': 'center',
+           'background-color': 'rgba(37, 150, 190)',
+           'color':'white',
+           'border': "2px solid white"})
+    ])
+    
+    card3 = dbc.Card([
+        dbc.CardBody([
+            html.H4(f"{input3}", className="card-title"),
+            html.P(f"{input3} was submitted.")
+        ],style={'display': 'inline-block',
+           'width': '33.3%',
+           'text-align': 'center',
+           'background-color': 'rgba(37, 150, 190)',
+           'color':'white',
+           'border': "2px solid white"})
+    ])    
+        
+    return (card1, card2, card3)
+    
+
+if __name__ == "__main__":
+    app.run_server()
