@@ -22,7 +22,7 @@ from dash.dependencies import Input, Output
 
 # ----------------------------------------------------------------------------------------------------------------------
 
-app = JupyterDash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 app.layout = html.Div(
     [
@@ -108,8 +108,8 @@ app.layout = html.Div(
         
         dbc.Row(
             children=[
-                dbc.Col(dcc.Graph(id="groups-line-plot"), width=6),
-                dbc.Col(dcc.Graph(id="bar-plot"), width=6)
+                dbc.Col(dcc.Graph(id="bar-plot"), width=6),
+                dbc.Col(dcc.Graph(id="groups-time-plot"), width=6)
             ]
         )
     ]
@@ -220,30 +220,28 @@ def serve_metrics_plot(fpath="water_cons_data.csv", n_size=10, t_range=12, iner_
 # ----------------------------------------------------------------------------------------------------------------------
 
 @app.callback(
-    Output("groups-line-plot", "figure"),
+    Output("bar-plot", "figure"),
     Input("input-file-location", "value"),
     Input("input-radio-item", "value"),
     Input("input-sample-size", "value"),
     Input("k-slider", "value")
 )
-def serve_consumption_plots(fpath="water_cons_data.csv", n_size=10, t_range=12, k=2):
+def serve_bar_plot(fpath="water_cons_data.csv", n_size=10, t_range=12, k=2):
     df = get_frame(fpath=fpath, n_size=n_size, t_range=t_range)
+    avg_df = df.mean(axis=1).to_frame()
+    avg_df.rename(columns={0: 'avg'}, inplace=True)
     model = get_model(fpath=fpath, n_size=n_size, t_range=t_range, k=k)
-    df["label"] = model.named_steps["kmeans"].labels_.astype(str)
-    months = np.array(df.columns)
+    avg_df["label"] = model.named_steps["kmeans"].labels_.astype(str) 
+    gr_df = avg_df.groupby(["label"]).mean().sort_values(by=['avg'], ascending=True)
     
-    fig = go.Figure()
-    for label in df["label"].unique():
-        cons = df[df["label"] == label].iloc[randint(0, 10), :].transpose()
-        
-        fig.add_trace(go.Scatter(
-            x=months, y=np.array(cons), name=label, mode='lines'))
-        
-    fig.update_layout(
-        title="Consumption Across Multiple Clusters",
-        xaxis_title="Month", yaxis_title="Consumption"
+    fig = px.bar(
+        data_frame=gr_df, x=gr_df['avg'], y=gr_df.index,
+        orientation='h',
+        title="Average Consumptions Across Clusters"
     )
-        
+    
+    fig.update_layout(xaxis_title="Average", yaxis_title="Cluster")
+    
     return fig
 
 # ----------------------------------------------------------------------------------------------------------------------
