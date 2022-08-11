@@ -248,27 +248,30 @@ def serve_bar_plot(fpath="water_cons_data.csv", n_size=10, t_range=12, k=2):
 
 
 @app.callback(
-    Output("bar-plot", "figure"),
+    Output("groups-time-plot", "figure"),
     Input("input-file-location", "value"),
     Input("input-radio-item", "value"),
     Input("input-sample-size", "value"),
     Input("k-slider", "value")
 )
-def serve_bar_plot(fpath="water_cons_data.csv", n_size=10, t_range=12, k=2):
+def serve_consumption_plots(fpath="water_cons_data.csv", n_size=10, t_range=12, k=2):
     df = get_frame(fpath=fpath, n_size=n_size, t_range=t_range)
-    avg_df = df.mean(axis=1).to_frame()
-    avg_df.rename(columns={'0': 'avg'}, inplace=True)
     model = get_model(fpath=fpath, n_size=n_size, t_range=t_range, k=k)
-    avg_df["label"] = model.named_steps["kmeans"].labels_.astype(str) 
-    gr_df = avg_df.groupby(["label"]).mean().sort_values(by=['mean'], ascending=False)
+    months = np.array(df.columns)
+    df["label"] = model.named_steps["kmeans"].labels_.astype(str)
     
-    fig = px.bar(
-        x=gr_df.index, y=gr_df['mean'],
-        title="Average Consumption Across Clusters"
+    fig = go.Figure()
+    for label in df["label"].unique():
+        cons = df[df["label"] == label].drop(columns=['label']).mean(axis=0)
+        
+        fig.add_trace(go.Scatter(
+            x=months, y=np.array(cons), name=label, mode='lines'))
+        
+    fig.update_layout(
+        title="Consumptions Multiple Time Plots Across Clusters",
+        xaxis_title="Month", yaxis_title="Consumption"
     )
-    
-    fig.update_layout(xaxis_title="Cluster", yaxis_title="Average")
-    
+        
     return fig
 
 
